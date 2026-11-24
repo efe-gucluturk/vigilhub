@@ -6,12 +6,13 @@ import contextlib
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from vigilhub import db, service
 from vigilhub.adapters import AdapterError
+from vigilhub.ai import IncidentAnalysis, analyze_incident
 from vigilhub.api.deps import Conn, require_api_key
 from vigilhub.api.ws import ConnectionManager, get_manager
 from vigilhub.correlation.normalize import normalize_target
@@ -132,6 +133,17 @@ def list_findings(
 @router.get("/incidents", response_model=list[Incident])
 def list_incidents(conn: Conn, limit: Limit = 100, offset: Offset = 0) -> list[Incident]:
     return db.list_incidents(conn, limit, offset)
+
+
+@router.post("/incidents/{incident_id}/analyze", response_model=IncidentAnalysis)
+async def analyze(
+    incident_id: Annotated[str, Path(pattern=r"^[0-9a-f]{32}$")], conn: Conn
+) -> IncidentAnalysis:
+    incident = await run_in_threadpool(db.get_incident, conn, incident_id)
+    if incident is None:
+        raise HTTPException(status_code=404, detail="incident not found")
+    findings = await run_in_threadpool(db.findings_by_ids, conn, incident.finding_ids)
+    return await analyze_incident(incident, findings)
 
 
 @router.get("/stats", response_model=StatsOut)

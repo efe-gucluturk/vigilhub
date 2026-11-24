@@ -14,6 +14,7 @@ PROTECTED = [
     ("GET", "/api/v1/findings"),
     ("GET", "/api/v1/incidents"),
     ("POST", "/api/v1/correlate"),
+    ("POST", "/api/v1/incidents/" + "0" * 32 + "/analyze"),
     ("POST", "/api/v1/demo/seed"),
     ("POST", "/api/v1/ingest/vigilsiem"),
 ]

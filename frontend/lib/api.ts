@@ -4,6 +4,7 @@ import type {
   CorrelateResult,
   Finding,
   Incident,
+  IncidentAnalysis,
   IngestResult,
   SeedResult,
   Severity,
@@ -74,6 +75,10 @@ export const api = {
     if (f.severity) q.set("severity", f.severity);
     return request<Finding[]>(key, `/api/v1/findings?${q}`);
   },
+  analyze: (key: string, incidentId: string) =>
+    request<IncidentAnalysis>(key, `/api/v1/incidents/${encodeURIComponent(incidentId)}/analyze`, {
+      method: "POST",
+    }),
   correlate: (key: string) =>
     request<CorrelateResult>(key, "/api/v1/correlate", { method: "POST" }),
   seed: (key: string) => request<SeedResult>(key, "/api/v1/demo/seed", { method: "POST" }),

@@ -38,7 +38,7 @@ export default function Dashboard() {
       />
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-5">
         <KpiCards stats={hub.stats} />
-        <IncidentsPanel incidents={hub.incidents} />
+        <IncidentsPanel incidents={hub.incidents} apiKey={hub.apiKey} onAuthError={rejected} />
         <AssetsTable assets={hub.assets} onSelect={setSelected} />
         <FindingsExplorer apiKey={hub.apiKey} tick={hub.tick} onAuthError={rejected} />
       </main>

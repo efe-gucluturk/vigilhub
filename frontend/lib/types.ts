@@ -71,6 +71,15 @@ export interface Incident {
   steps: IncidentStep[];
 }
 
+export interface IncidentAnalysis {
+  incident_id: string;
+  summary: string;
+  attack_chain: string;
+  remediation_steps: string[];
+  model: string;
+  fallback_used: boolean;
+}
+
 export interface Stats {
   total_assets: number;
   total_findings: number;

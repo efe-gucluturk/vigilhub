@@ -316,26 +316,38 @@ def replace_incidents(conn: sqlite3.Connection, incidents: list[Incident]) -> No
             )
 
 
+def _incident_from_row(r: sqlite3.Row) -> Incident:
+    return Incident(
+        id=r["id"],
+        rule_id=r["rule_id"],
+        title=r["title"],
+        severity=r["severity"],
+        score=r["score"],
+        summary=r["summary"],
+        asset_ids=json.loads(r["asset_ids"]),
+        finding_ids=json.loads(r["finding_ids"]),
+        sources=json.loads(r["sources"]),
+        steps=json.loads(r["steps"]),
+    )
+
+
 def list_incidents(conn: sqlite3.Connection, limit: int = 100, offset: int = 0) -> list[Incident]:
     rows = conn.execute(
         "SELECT * FROM incidents ORDER BY severity_rank DESC, score DESC, id LIMIT ? OFFSET ?",
         (limit, offset),
     ).fetchall()
-    return [
-        Incident(
-            id=r["id"],
-            rule_id=r["rule_id"],
-            title=r["title"],
-            severity=r["severity"],
-            score=r["score"],
-            summary=r["summary"],
-            asset_ids=json.loads(r["asset_ids"]),
-            finding_ids=json.loads(r["finding_ids"]),
-            sources=json.loads(r["sources"]),
-            steps=json.loads(r["steps"]),
-        )
-        for r in rows
-    ]
+    return [_incident_from_row(r) for r in rows]
+
+
+def get_incident(conn: sqlite3.Connection, incident_id: str) -> Incident | None:
+    row = conn.execute("SELECT * FROM incidents WHERE id = ?", (incident_id,)).fetchone()
+    return _incident_from_row(row) if row else None
+
+
+def findings_by_ids(conn: sqlite3.Connection, ids: list[str]) -> list[Finding]:
+    """Fetch findings for an incident (bounded: incidents hold a handful of findings)."""
+    wanted = set(ids)
+    return [f for f in all_findings(conn) if f.id in wanted]
 
 
 def incident_ids_for_asset(conn: sqlite3.Connection, asset_id: str) -> list[str]:
