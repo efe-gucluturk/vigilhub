@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from vigilhub.config import MAX_API_KEY_LENGTH
-from vigilhub.models import Asset, Finding, Incident
+from vigilhub.models import Asset, Finding, Incident, Severity, Source
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS assets (
@@ -353,3 +353,34 @@ _COUNT_SQL = {
 
 def counts(conn: sqlite3.Connection) -> dict[str, int]:
     return {name: conn.execute(sql).fetchone()[0] for name, sql in _COUNT_SQL.items()}
+
+
+def _group_counts(rows: list[sqlite3.Row]) -> dict[str, int]:
+    return {r["k"]: r["n"] for r in rows}
+
+
+def stats(conn: sqlite3.Connection) -> dict[str, dict[str, int] | int]:
+    """Aggregate counts for the dashboard. Every severity/source key is present (0 if none)."""
+    c = counts(conn)
+    by_sev = _group_counts(
+        conn.execute(
+            "SELECT severity AS k, COUNT(*) AS n FROM findings GROUP BY severity"
+        ).fetchall()
+    )
+    by_src = _group_counts(
+        conn.execute("SELECT source AS k, COUNT(*) AS n FROM findings GROUP BY source").fetchall()
+    )
+    inc_sev = _group_counts(
+        conn.execute(
+            "SELECT severity AS k, COUNT(*) AS n FROM incidents GROUP BY severity"
+        ).fetchall()
+    )
+    levels = [s.value for s in Severity]
+    return {
+        "total_assets": c["assets"],
+        "total_findings": c["findings"],
+        "total_incidents": c["incidents"],
+        "findings_by_severity": {k: by_sev.get(k, 0) for k in levels},
+        "findings_by_source": {s.value: by_src.get(s.value, 0) for s in Source},
+        "incidents_by_severity": {k: inc_sev.get(k, 0) for k in levels},
+    }

@@ -5,11 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from vigilhub import __version__
 from vigilhub.api.middleware import SecurityMiddleware
 from vigilhub.api.routes import router
-from vigilhub.config import MAX_BODY_BYTES, db_path
+from vigilhub.api.ws import ConnectionManager
+from vigilhub.api.ws import router as ws_router
+from vigilhub.config import ALLOWED_ORIGINS, MAX_BODY_BYTES, db_path
 
 
 def create_app(database: Path | str | None = None) -> FastAPI:
@@ -22,8 +25,20 @@ def create_app(database: Path | str | None = None) -> FastAPI:
         openapi_url=None,
     )
     app.state.db_path = str(db_path(database))
+    app.state.ws_manager = ConnectionManager()
     app.add_middleware(SecurityMiddleware, max_body=MAX_BODY_BYTES)
+    # Added last = outermost, so preflights are answered before auth and every response
+    # (including 401/413) carries CORS headers. Only the local dashboard origins are allowed.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(ALLOWED_ORIGINS),
+        allow_methods=["GET", "POST"],
+        allow_headers=["X-API-Key", "Content-Type"],
+        allow_credentials=False,
+        max_age=600,
+    )
     app.include_router(router)
+    app.include_router(ws_router)
 
     @app.get("/health")
     def health() -> dict[str, str]:

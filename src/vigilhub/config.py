@@ -9,6 +9,9 @@ MAX_BODY_BYTES = 2 * 1024 * 1024  # strict ingestion payload ceiling (API and CL
 MAX_FINDINGS_PER_REPORT = 10_000
 MAX_API_KEY_LENGTH = 256
 
+# Browser origins allowed to call the API (CORS) and open the event stream.
+ALLOWED_ORIGINS = ("http://localhost:3000", "http://127.0.0.1:3000")
+
 DEFAULT_DB = "vigilhub.db"
 DEFAULT_KEY_FILE = ".vigilhub_key"
 

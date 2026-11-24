@@ -37,7 +37,19 @@ sibling repositories needed (fixtures are built in `vigilhub.demo` and `tests/`)
 6. **Never ingest raw secrets**: GitVigil's optional `secret` field is dropped by the
    adapter. Only redacted matches are stored.
 7. **Rich output**: wrap untrusted text in `rich.text.Text` so it is not parsed as markup.
-8. The server binds `127.0.0.1` by default. The OpenAPI/docs endpoints are disabled.
+8. **WebSocket auth**: never accept the API key in the URL (it lands in access logs). The
+   stream (`WS /api/v1/ws`) takes `X-API-Key` on the handshake or a first
+   `{"type":"auth","api_key":...}` frame within 5 s; anything else closes with 1008. Origins
+   other than the two dashboard origins in `config.ALLOWED_ORIGINS` are refused (CORS uses the same list).
+9. **Frontend XSS**: all scanner-derived text is rendered as React text nodes. No
+   `dangerouslySetInnerHTML`, `innerHTML`, `eval` or `localStorage` in `frontend/` (a test enforces it).
+   The operator's API key lives in `sessionStorage` only and is never baked into the bundle.
+10. The server binds `127.0.0.1` by default. The OpenAPI/docs endpoints are disabled.
+
+Frontend (`frontend/`, Next.js App Router + Tailwind): `npm install`, `npx tsc --noEmit`,
+`npm run build`, `npm run dev` (serves `http://127.0.0.1:3000`; API base from
+`NEXT_PUBLIC_VIGILHUB_API`, default `http://127.0.0.1:8000`). `frontend/lib/types.ts` mirrors
+`models.py`; update both together.
 
 ## Conventions
 

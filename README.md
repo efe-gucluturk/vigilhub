@@ -34,4 +34,19 @@ curl -H "X-API-Key: $(cat .vigilhub_key)" http://127.0.0.1:8000/api/v1/incidents
 `POST /ingest/{source}`, `GET /assets[/{id}]`, `GET /findings?source=&severity=&asset=`,
 `GET /incidents`, `POST /correlate`, `POST /demo/seed`. Request bodies are capped at 2 MB.
 
+### Real-time stream and dashboard
+
+`WS /api/v1/ws` pushes `ingest_completed`, `correlation_updated` and `demo_seeded` events.
+Authenticate with the `X-API-Key` handshake header or a first frame
+`{"type":"auth","api_key":"..."}` within 5 s (never the URL); failures close with code 1008.
+`GET /api/v1/stats` returns aggregate counts. CORS allows only `http://localhost:3000` and
+`http://127.0.0.1:3000`.
+
+```
+vigilhub serve                      # terminal 1
+cd frontend && npm install && npm run dev   # terminal 2 -> http://127.0.0.1:3000
+```
+
+Paste the contents of `.vigilhub_key` into the sign-in dialog. It is stored in `sessionStorage` only.
+
 See `CLAUDE.md` for the engineering and security rules.

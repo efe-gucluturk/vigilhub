@@ -13,9 +13,12 @@ from starlette.concurrency import run_in_threadpool
 from vigilhub import db, service
 from vigilhub.adapters import AdapterError
 from vigilhub.api.deps import Conn, require_api_key
+from vigilhub.api.ws import ConnectionManager, get_manager
 from vigilhub.correlation.normalize import normalize_target
 from vigilhub.models import Asset, Finding, Incident, Severity, Source
 from vigilhub.sanitize import sanitize_text
+
+Manager = Annotated[ConnectionManager, Depends(get_manager)]
 
 router = APIRouter(prefix="/api/v1", dependencies=[Depends(require_api_key)])
 
@@ -43,6 +46,15 @@ class AssetDetail(BaseModel):
     incident_ids: list[str]
 
 
+class StatsOut(BaseModel):
+    total_assets: int
+    total_findings: int
+    total_incidents: int
+    findings_by_severity: dict[str, int]
+    findings_by_source: dict[str, int]
+    incidents_by_severity: dict[str, int]
+
+
 class SeedOut(BaseModel):
     ingested: list[IngestOut]
     correlation: CorrelateOut
@@ -53,6 +65,7 @@ async def ingest(
     source: Source,
     request: Request,
     conn: Conn,
+    manager: Manager,
     target: Annotated[str | None, Query(max_length=512)] = None,
 ) -> IngestOut:
     body = await request.body()  # size already bounded by SecurityMiddleware
@@ -64,7 +77,12 @@ async def ingest(
         summary = await run_in_threadpool(service.ingest, conn, source, data, target=target)
     except AdapterError as exc:
         raise HTTPException(status_code=422, detail=sanitize_text(exc, 300)) from exc
-    return IngestOut(**vars(summary))
+    out = IngestOut(**vars(summary))
+    await manager.broadcast(
+        "ingest_completed",
+        {"source": out.source, "accepted": out.accepted, "skipped": out.skipped},
+    )
+    return out
 
 
 @router.get("/assets", response_model=list[Asset])
@@ -116,15 +134,25 @@ def list_incidents(conn: Conn, limit: Limit = 100, offset: Offset = 0) -> list[I
     return db.list_incidents(conn, limit, offset)
 
 
+@router.get("/stats", response_model=StatsOut)
+def get_stats(conn: Conn) -> StatsOut:
+    return StatsOut(**db.stats(conn))
+
+
 @router.post("/correlate", response_model=CorrelateOut)
-def correlate(conn: Conn) -> CorrelateOut:
-    return CorrelateOut(**vars(service.run_correlation(conn)))
+async def correlate(conn: Conn, manager: Manager) -> CorrelateOut:
+    summary = await run_in_threadpool(service.run_correlation, conn)
+    out = CorrelateOut(**vars(summary))
+    await manager.broadcast("correlation_updated", out.model_dump())
+    return out
 
 
 @router.post("/demo/seed", response_model=SeedOut)
-def seed_demo(conn: Conn) -> SeedOut:
-    summaries, correlation = service.seed_demo(conn)
-    return SeedOut(
+async def seed_demo(conn: Conn, manager: Manager) -> SeedOut:
+    summaries, correlation = await run_in_threadpool(service.seed_demo, conn)
+    out = SeedOut(
         ingested=[IngestOut(**vars(s)) for s in summaries],
         correlation=CorrelateOut(**vars(correlation)),
     )
+    await manager.broadcast("demo_seeded", out.model_dump())
+    return out
