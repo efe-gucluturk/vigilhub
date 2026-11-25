@@ -243,3 +243,20 @@ def test_gitvigil_raw_secret_not_persisted(client: TestClient, conn):
     assert client.post("/api/v1/ingest/gitvigil", json=doc).status_code == 200
     dump = "\n".join(conn.iterdump())
     assert "AKIAIOSFODNN7REALKEY" not in dump
+
+
+def test_rate_limit_returns_429() -> None:
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    from vigilhub.api.middleware import RateLimitMiddleware
+
+    app = FastAPI()
+    app.add_middleware(RateLimitMiddleware, limit=2, window=60.0)
+
+    @app.get("/api/x")
+    def x() -> dict[str, int]:
+        return {"ok": 1}
+
+    client = TestClient(app)
+    assert [client.get("/api/x").status_code for _ in range(3)] == [200, 200, 429]

@@ -13,3 +13,16 @@ __pycache__/
 .ruff_cache/
 dist/
 build/
+
+# Local output, recon data and database dumps - never commit
+output/
+Recon-Karneler/
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db-journal
+*.dump
+*.sql.gz
+.env.local
+.env.*.local

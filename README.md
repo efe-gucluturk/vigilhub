@@ -11,6 +11,15 @@ findings into **incidents**.
 This is a learning project, not a product. It runs locally, has one API key, and has not been
 audited by anyone but me and some automated tools (ruff, bandit, pytest).
 
+## Authorized & Educational Use Only
+
+VigilHub and the tools that feed it are for **authorized and educational use only**. Only
+point them at systems, networks, repositories and accounts you own or have explicit written
+permission to assess. VigilHub itself is passive: it ingests reports and does not scan
+networks. Do not use these tools for port scanning, brute-forcing, exploitation or any other
+activity against systems you are not authorized to test. The software is provided under the
+MIT License (see `LICENSE`) without warranty; the author accepts no liability for misuse.
+
 ## What it does
 
 - Ingests JSON reports from VigilSIEM, GitVigil (JSON or SARIF) and ReconVigil.

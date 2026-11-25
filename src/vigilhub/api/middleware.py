@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import time
+from collections import deque
+
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -80,3 +83,44 @@ class SecurityMiddleware:
             headers={"Connection": "close"},
         )
         await response(scope, receive, send)
+
+
+class RateLimitMiddleware:
+    """Sliding-window, in-memory rate limit per client address on ``/api/`` HTTP routes.
+
+    Single-process only (state is not shared); enough to blunt brute-forcing of the API key.
+    """
+
+    MAX_TRACKED_CLIENTS = 10_000
+
+    def __init__(self, app: ASGIApp, limit: int, window: float = 60.0) -> None:
+        self.app = app
+        self.limit = limit
+        self.window = window
+        self._hits: dict[str, deque[float]] = {}
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or not scope["path"].startswith("/api/") or self.limit <= 0:
+            await self.app(scope, receive, send)
+            return
+        # Preflights are answered by CORS (outer layer) and never reach here.
+        client = scope.get("client")
+        key = client[0] if client else "unknown"
+        now = time.monotonic()
+        hits = self._hits.setdefault(key, deque())
+        while hits and now - hits[0] > self.window:
+            hits.popleft()
+        if len(hits) >= self.limit:
+            retry = max(1, int(self.window - (now - hits[0])) + 1)
+            response = JSONResponse(
+                {"detail": "rate limit exceeded"},
+                status_code=429,
+                headers={"Retry-After": str(retry)},
+            )
+            await response(scope, receive, send)
+            return
+        hits.append(now)
+        if len(self._hits) > self.MAX_TRACKED_CLIENTS:
+            for stale in [k for k, v in self._hits.items() if not v or now - v[-1] > self.window]:
+                del self._hits[stale]
+        await self.app(scope, receive, send)

@@ -10,6 +10,9 @@ MAX_FINDINGS_PER_REPORT = 10_000
 MAX_API_KEY_LENGTH = 256
 
 # Browser origins allowed to call the API (CORS) and open the event stream.
+# In-memory per-client rate limit for /api/ (requests per window); override via env.
+RATE_LIMIT_REQUESTS = int(os.environ.get("VIGILHUB_RATE_LIMIT", "300"))
+RATE_LIMIT_WINDOW_SECONDS = 60.0
 ALLOWED_ORIGINS = ("http://localhost:3000", "http://127.0.0.1:3000")
 
 # Local AI triage (Ollama). Loopback only unless the operator explicitly opts out.
