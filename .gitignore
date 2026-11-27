@@ -26,3 +26,12 @@ Recon-Karneler/
 *.sql.gz
 .env.local
 .env.*.local
+
+# Audit 2026-11-27: logs, keys, local data and agent settings never committed
+*.log
+*.pem
+*.key
+.claude/settings.local.json
+frontend/.env.local
+node_modules/
+.next/

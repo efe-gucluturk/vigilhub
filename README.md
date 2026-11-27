@@ -11,7 +11,7 @@ findings into **incidents**.
 This is a learning project, not a product. It runs locally, has one API key, and has not been
 audited by anyone but me and some automated tools (ruff, bandit, pytest).
 
-## Authorized & Educational Use Only
+## Authorized & Educational Use Only / Yalnızca Yetkili ve Eğitim Amaçlı Kullanım
 
 VigilHub and the tools that feed it are for **authorized and educational use only**. Only
 point them at systems, networks, repositories and accounts you own or have explicit written
@@ -19,6 +19,8 @@ permission to assess. VigilHub itself is passive: it ingests reports and does no
 networks. Do not use these tools for port scanning, brute-forcing, exploitation or any other
 activity against systems you are not authorized to test. The software is provided under the
 MIT License (see `LICENSE`) without warranty; the author accepts no liability for misuse.
+
+**Yalnızca Yetkili ve Eğitim Amaçlı Kullanım.** Bu proje yalnızca sahibi olduğunuz veya açık yazılı izin aldığınız sistemlerde ve eğitim amacıyla kullanılmalıdır. İzinsiz kullanım 5237 sayılı Türk Ceza Kanunu m. 243–244 kapsamında suç oluşturabilir; yazar kötüye kullanımdan sorumlu tutulamaz.
 
 ## What it does
 
